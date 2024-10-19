@@ -32,11 +32,9 @@ export default class ProductHuntApp implements App {
             placeholder: "Enter the slug of the post/launch",
           },
         },
-        getData: async ({ inputs }) => {
+        getData: async ({ inputs, store }) => {
           const apiToken = inputs["api-token"];
           const slug = inputs["slug"];
-
-          console.log(apiToken, slug);
 
           if (!apiToken.value.value || !slug.value.value) {
             return {
@@ -44,10 +42,31 @@ export default class ProductHuntApp implements App {
             };
           }
 
-          const { post, rank } = await this.getPostRank(
-            slug.value.value.toString(),
-            apiToken.value.value.toString()
-          );
+          let post: any = null;
+          let rank: number | null = null;
+          const cached = await store.read("ph-cache");
+          if (cached) {
+            const cachedJson = JSON.parse(cached);
+            if (cachedJson.slug === slug.value.value && cachedJson.updatedAt > Date.now() - 3 * 60 * 1000) {
+              post = cachedJson.post;
+              rank = cachedJson.rank;
+            }
+          }
+
+          if (!post || rank === null) {
+            const res = await this.getPostRank(
+              slug.value.value.toString(),
+              apiToken.value.value.toString()
+            );
+            post = res.post;
+            rank = res.rank;
+            await store.write("ph-cache", JSON.stringify({
+              slug: slug.value.value.toString(),
+              updatedAt: Date.now(),
+              post,
+              rank,
+            }));
+          }
 
           return {
             slides: [
@@ -85,15 +104,11 @@ export default class ProductHuntApp implements App {
       body: JSON.stringify({
         query: `{
           post(slug:"${slug}") {
-            description,
             votesCount,
             name,
             featuredAt,
             commentsCount,
             tagline,
-            website,
-            reviewsCount,
-            reviewsRating
           }
         }`,
       }),

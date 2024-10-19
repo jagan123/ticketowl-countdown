@@ -1,13 +1,13 @@
 {
   "name": "tickerowl-producthunt",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test-run": "node_modules/tickerowl-app-base/dist/run.js dist/index.js"
+    "test-run": "tsc && node_modules/tickerowl-app-base/dist/run.js dist/index.js"
   },
   "keywords": [],
   "author": "",
