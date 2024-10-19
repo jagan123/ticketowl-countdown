@@ -1,5 +1,8 @@
 import { App, AppInfo, AppSlide } from "tickerowl-app-base";
 
+const CACHE_DURATION = 3 * 60 * 1000;
+const CACHE_KEY = "cache";
+
 export default class ProductHuntApp implements App {
   getInfo(): AppInfo {
     return {
@@ -25,7 +28,7 @@ export default class ProductHuntApp implements App {
             required: true,
             placeholder: "Enter your Product Hunt API token",
           },
-          "slug": {
+          slug: {
             type: "text",
             label: "Slug",
             required: true,
@@ -44,10 +47,14 @@ export default class ProductHuntApp implements App {
 
           let post: any = null;
           let rank: number | null = null;
-          const cached = await store.read("ph-cache");
+          const cached = await store.read(CACHE_KEY);
           if (cached) {
             const cachedJson = JSON.parse(cached);
-            if (cachedJson.slug === slug.value.value && cachedJson.updatedAt > Date.now() - 3 * 60 * 1000) {
+            if (
+              cachedJson.slug === slug.value.value &&
+              new Date(cachedJson.updatedAt) >
+                new Date(Date.now() - CACHE_DURATION)
+            ) {
               post = cachedJson.post;
               rank = cachedJson.rank;
             }
@@ -60,12 +67,15 @@ export default class ProductHuntApp implements App {
             );
             post = res.post;
             rank = res.rank;
-            await store.write("ph-cache", JSON.stringify({
-              slug: slug.value.value.toString(),
-              updatedAt: Date.now(),
-              post,
-              rank,
-            }));
+            await store.write(
+              CACHE_KEY,
+              JSON.stringify({
+                slug: slug.value.value.toString(),
+                updatedAt: Date.now(),
+                post,
+                rank,
+              })
+            );
           }
 
           return {
