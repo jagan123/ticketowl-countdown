@@ -74,8 +74,8 @@ export default class ProductHuntApp implements App {
             lastVotes = cachedJson.lastVotes;
             lastComments = cachedJson.lastComments;
             cachedRank = cachedJson.rank;
-            cachedVotes = cachedJson.votes;
-            cachedComments = cachedJson.comments;
+            cachedVotes = cachedJson.post.votesCount;
+            cachedComments = cachedJson.post.commentsCount;
             updatedAt = cachedJson.updatedAt;
             if (
               cachedJson.slug === slug.value.value &&
