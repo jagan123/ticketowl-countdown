@@ -120,7 +120,7 @@ export default class ProductHuntApp implements App {
                 value: this.getNumberWithChange(currentVotes, lastVotes),
               }),
               SlideMaker.keyValue({
-                key: "Comments",
+                key: "Comms",
                 value: this.getNumberWithChange(currentComments, lastComments),
               }),
             ],
