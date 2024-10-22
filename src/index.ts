@@ -1,4 +1,4 @@
-import { App, AppInfo, AppSlide, SlideMaker } from "tickerowl-app-base";
+import { App, AppInfo, AppSlide, SlideData, SlideMaker } from "tickerowl-app-base";
 
 const CACHE_KEY = "cache";
 
@@ -33,6 +33,20 @@ export default class ProductHuntApp implements App {
             required: true,
             placeholder: "Enter the slug of the post/launch",
           },
+          showName: {
+            type: "checkbox",
+            label: "Show Name",
+            required: false,
+            description: "Show the name of the post/launch",
+            defaultValue: true,
+          },
+          showTagline: {
+            type: "checkbox",
+            label: "Show Tagline",
+            required: false,
+            description: "Show the tagline of the post/launch",
+            defaultValue: true,
+          },
           cacheDuration: {
             type: "select",
             label: "Cache Duration",
@@ -47,6 +61,8 @@ export default class ProductHuntApp implements App {
           const apiToken = inputs["api-token"];
           const slug = inputs["slug"];
           const cacheDuration = inputs["cacheDuration"];
+          const showName = inputs["showName"];
+          const showTagline = inputs["showTagline"];
 
           if (!apiToken.value.value || !slug.value.value) {
             return {
@@ -119,9 +135,22 @@ export default class ProductHuntApp implements App {
             })
           );
 
+          const slides: SlideData[] = [];
+
+          let infos: string[] = [];
+          if (showName.value.value) {
+            infos.push(post.name);
+          }
+          if (showTagline.value.value) {
+            infos.push(post.tagline);
+          }
+          if (infos.length > 0) {
+            slides.push(SlideMaker.text({ text: infos.join(" - ") }));
+          }
+
           return {
             slides: [
-              SlideMaker.text({ text: `${post.name} - ${post.tagline}` }),
+              ...slides,
               SlideMaker.keyValue({
                 key: "Rank",
                 value: this.getNumberWithChange(currentRank, lastRank),
