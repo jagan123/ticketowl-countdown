@@ -47,9 +47,27 @@ export default class ProductHuntApp implements App {
 
           let post: any = null;
           let rank: number | null = null;
+          let lastRank;
+          let lastVotes;
+          let lastComments;
+
+          let cachedRank;
+          let cachedVotes;
+          let cachedComments;
+
+          let updatedAt;
+
           const cached = await store.read(CACHE_KEY);
+
           if (cached) {
             const cachedJson = JSON.parse(cached);
+            lastRank = cachedJson.lastRank;
+            lastVotes = cachedJson.lastVotes;
+            lastComments = cachedJson.lastComments;
+            cachedRank = cachedJson.rank;
+            cachedVotes = cachedJson.votes;
+            cachedComments = cachedJson.comments;
+            updatedAt = cachedJson.updatedAt;
             if (
               cachedJson.slug === slug.value.value &&
               new Date(cachedJson.updatedAt) >
@@ -67,22 +85,44 @@ export default class ProductHuntApp implements App {
             );
             post = res.post;
             rank = res.rank;
-            await store.write(
-              CACHE_KEY,
-              JSON.stringify({
-                slug: slug.value.value.toString(),
-                updatedAt: Date.now(),
-                post,
-                rank,
-              })
-            );
+            updatedAt = Date.now();
           }
+
+          const currentRank = rank;
+          const currentVotes = post.votesCount;
+          const currentComments = post.commentsCount;
+
+          await store.write(
+            CACHE_KEY,
+            JSON.stringify({
+              slug: slug.value.value.toString(),
+              updatedAt,
+              post,
+              rank,
+              lastRank: cachedRank !== currentRank ? cachedRank : lastRank,
+              lastVotes: cachedVotes !== currentVotes ? cachedVotes : lastVotes,
+              lastComments:
+                cachedComments !== currentComments
+                  ? cachedComments
+                  : lastComments,
+            })
+          );
 
           return {
             slides: [
-              SlideMaker.text({text: `${post.name} - ${post.tagline}`}),
-              SlideMaker.keyValue({key: "Rank", value: rank.toString()}),
-              SlideMaker.keyValue({key: "V/C", value: `${post.votesCount}/${post.commentsCount}`})
+              SlideMaker.text({ text: `${post.name} - ${post.tagline}` }),
+              SlideMaker.keyValue({
+                key: "Rank",
+                value: this.getNumberWithChange(currentRank, lastRank),
+              }),
+              SlideMaker.keyValue({
+                key: "Votes",
+                value: this.getNumberWithChange(currentVotes, lastVotes),
+              }),
+              SlideMaker.keyValue({
+                key: "Comments",
+                value: this.getNumberWithChange(currentComments, lastComments),
+              }),
             ],
           };
         },
@@ -141,5 +181,16 @@ export default class ProductHuntApp implements App {
     const rank = ranks.indexOf(slug) + 1;
 
     return { post: post.data.post, rank };
+  }
+
+  getNumberWithChange(current: number, last: number): string {
+    let change = "";
+    if (last < current) {
+      change = "🔼";
+    } else if (last > current) {
+      change = "🔽";
+    }
+
+    return `${change}${current}`;
   }
 }
