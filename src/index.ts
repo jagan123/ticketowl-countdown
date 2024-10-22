@@ -1,4 +1,4 @@
-import { App, AppInfo, AppSlide } from "tickerowl-app-base";
+import { App, AppInfo, AppSlide, SlideMaker } from "tickerowl-app-base";
 
 const CACHE_DURATION = 3 * 60 * 1000;
 const CACHE_KEY = "cache";
@@ -80,20 +80,9 @@ export default class ProductHuntApp implements App {
 
           return {
             slides: [
-              {
-                type: "TEXT",
-                text: `${post.name} - ${post.tagline}`,
-              },
-              {
-                type: "KEY_VALUE",
-                key: "Rank",
-                value: rank.toString(),
-              },
-              {
-                type: "KEY_VALUE",
-                key: "V/C",
-                value: `${post.votesCount}/${post.commentsCount}`,
-              },
+              SlideMaker.text({text: `${post.name} - ${post.tagline}`}),
+              SlideMaker.keyValue({key: "Rank", value: rank.toString()}),
+              SlideMaker.keyValue({key: "V/C", value: `${post.votesCount}/${post.commentsCount}`})
             ],
           };
         },
