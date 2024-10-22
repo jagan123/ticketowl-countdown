@@ -1,6 +1,5 @@
 import { App, AppInfo, AppSlide, SlideMaker } from "tickerowl-app-base";
 
-const CACHE_DURATION = 3 * 60 * 1000;
 const CACHE_KEY = "cache";
 
 export default class ProductHuntApp implements App {
@@ -34,10 +33,20 @@ export default class ProductHuntApp implements App {
             required: true,
             placeholder: "Enter the slug of the post/launch",
           },
+          cacheDuration: {
+            type: "select",
+            label: "Cache Duration",
+            required: true,
+            options: [
+              { label: "Disable", value: "0" },
+              { label: "5 minutes", value: (60 * 5).toString() },
+            ],
+          },
         },
         getData: async ({ inputs, store }) => {
           const apiToken = inputs["api-token"];
           const slug = inputs["slug"];
+          const cacheDuration = inputs["cacheDuration"];
 
           if (!apiToken.value.value || !slug.value.value) {
             return {
@@ -71,7 +80,9 @@ export default class ProductHuntApp implements App {
             if (
               cachedJson.slug === slug.value.value &&
               new Date(cachedJson.updatedAt) >
-                new Date(Date.now() - CACHE_DURATION)
+                new Date(
+                  Date.now() - Number(cacheDuration?.value.value ?? 0) * 1000
+                )
             ) {
               post = cachedJson.post;
               rank = cachedJson.rank;
