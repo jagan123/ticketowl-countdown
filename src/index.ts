@@ -157,11 +157,11 @@ export default class ProductHuntApp implements App {
               }),
               SlideMaker.keyValue({
                 key: "Votes",
-                value: this.getNumberWithChange(currentVotes, lastVotes),
+                value: `❤️ ${this.getNumberWithChange(currentVotes, lastVotes)}`,
               }),
               SlideMaker.keyValue({
                 key: "Comms",
-                value: this.getNumberWithChange(currentComments, lastComments),
+                value: `💬 ${this.getNumberWithChange(currentComments, lastComments)}`,
               }),
             ],
           };
