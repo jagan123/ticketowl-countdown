@@ -96,6 +96,7 @@ export default class WeatherApp implements App {
         getData: async ({ inputs, store }) => {
           const apiToken = inputs["api-token"];
           const city = inputs["city"];
+          const cacheDuration = inputs["cacheDuration"];
 
           if (!apiToken.value.value || !city.value.value) {
             return {
@@ -107,6 +108,9 @@ export default class WeatherApp implements App {
             store,
             key: "weather",
             asJson: true,
+            duration: cacheDuration.value.value
+              ? Number(cacheDuration.value.value)
+              : undefined,
             fetch: async () => {
               return await this.getWeather(
                 city.value.value!.toString(),
