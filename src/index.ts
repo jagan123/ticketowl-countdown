@@ -125,10 +125,6 @@ export default class WeatherApp implements App {
                 key: "Temp",
                 value: weather.main.temp + "'C",
               }),
-              SlideMaker.keyValue({
-                key: "Feels like",
-                value: weather.main.feels_like + "'C",
-              }),
               SlideMaker.text({
                 text: `Weather: ${weather.weather[0].description}`,
               }),
