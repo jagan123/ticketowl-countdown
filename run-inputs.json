@@ -1,6 +1,6 @@
 {
-  "producthunt-stats": {
+  "weather-stats": {
     "api-token": "",
-    "slug": ""
+    "city": ""
   }
 }

@@ -2,50 +2,36 @@ import { App, AppInfo, AppSlide, SlideData, SlideMaker } from "tickerowl-app-bas
 
 const CACHE_KEY = "cache";
 
-export default class ProductHuntApp implements App {
+export default class WeatherApp implements App {
   getInfo(): AppInfo {
     return {
-      id: "producthunt",
-      name: "Product Hunt",
-      description: "Show your Product Hunt stats",
+      id: "weather",
+      name: "City Weather",
+      description: "Show your city's weather",
       version: 1,
-      author: "Pramod",
-      authorXUrl: "https://twitter.com/@pramodk73",
-      authorGitHubUrl: "https://github.com/pskd73",
+      author: "Jagan Ganti",
+      authorXUrl: "https://twitter.com/@jagan123",
+      authorGitHubUrl: "https://github.com/jagan123",
     };
   }
 
   getSlides(): Record<string, AppSlide> {
     return {
-      "producthunt-stats": {
-        title: "Product Hunt Stats",
-        description: "Shows your Product Hunt stats",
+      "weather-stats": {
+        title: "City Weather",
+        description: "Shows your city's weather",
         inputs: {
           "api-token": {
             type: "text",
             label: "API Token",
             required: true,
-            placeholder: "Enter your Product Hunt API token",
+            placeholder: "Enter your OpenWeatherMap API token",
           },
-          slug: {
+          city: {
             type: "text",
-            label: "Slug",
+            label: "City",
             required: true,
-            placeholder: "Enter the slug of the post/launch",
-          },
-          showName: {
-            type: "checkbox",
-            label: "Show Name",
-            required: false,
-            description: "Show the name of the post/launch",
-            defaultValue: true,
-          },
-          showTagline: {
-            type: "checkbox",
-            label: "Show Tagline",
-            required: false,
-            description: "Show the tagline of the post/launch",
-            defaultValue: true,
+            placeholder: "Enter the city",
           },
           cacheDuration: {
             type: "select",
@@ -59,26 +45,19 @@ export default class ProductHuntApp implements App {
         },
         getData: async ({ inputs, store }) => {
           const apiToken = inputs["api-token"];
-          const slug = inputs["slug"];
+          const city = inputs["city"];
           const cacheDuration = inputs["cacheDuration"];
-          const showName = inputs["showName"];
-          const showTagline = inputs["showTagline"];
 
-          if (!apiToken.value.value || !slug.value.value) {
+          if (!apiToken.value.value || !city.value.value) {
             return {
               slides: [],
             };
           }
 
-          let post: any = null;
-          let rank: number | null = null;
-          let lastRank;
-          let lastVotes;
-          let lastComments;
+          let weather: any = null;
+          let lastWeather;
+          let cachedWeather;
 
-          let cachedRank;
-          let cachedVotes;
-          let cachedComments;
 
           let updatedAt;
 
@@ -86,64 +65,47 @@ export default class ProductHuntApp implements App {
 
           if (cached) {
             const cachedJson = JSON.parse(cached);
-            lastRank = cachedJson.lastRank;
-            lastVotes = cachedJson.lastVotes;
-            lastComments = cachedJson.lastComments;
-            cachedRank = cachedJson.rank;
-            cachedVotes = cachedJson.post.votesCount;
-            cachedComments = cachedJson.post.commentsCount;
+            lastWeather = cachedJson.lastWeather;
+            cachedWeather = cachedJson.weather;
             updatedAt = cachedJson.updatedAt;
             if (
-              cachedJson.slug === slug.value.value &&
+              cachedJson.city === city.value.value &&
               new Date(cachedJson.updatedAt) >
                 new Date(
                   Date.now() - Number(cacheDuration?.value.value ?? 0) * 1000
                 )
             ) {
-              post = cachedJson.post;
-              rank = cachedJson.rank;
+              weather = cachedJson.weather;
             }
           }
 
-          if (!post || rank === null) {
-            const res = await this.getPostRank(
-              slug.value.value.toString(),
+          if (!weather) {
+            const res = await this.getWeather(
+              city.value.value.toString(),
               apiToken.value.value.toString()
             );
-            post = res.post;
-            rank = res.rank;
+            weather = res;
             updatedAt = Date.now();
           }
 
-          const currentRank = rank;
-          const currentVotes = post.votesCount;
-          const currentComments = post.commentsCount;
+          const currentWeather = weather;
 
           await store.write(
             CACHE_KEY,
             JSON.stringify({
-              slug: slug.value.value.toString(),
+              city: city.value.value.toString(),
               updatedAt,
-              post,
-              rank,
-              lastRank: cachedRank !== currentRank ? cachedRank : lastRank,
-              lastVotes: cachedVotes !== currentVotes ? cachedVotes : lastVotes,
-              lastComments:
-                cachedComments !== currentComments
-                  ? cachedComments
-                  : lastComments,
+              weather,
+              lastWeather: cachedWeather !== currentWeather ? cachedWeather : lastWeather,
             })
           );
 
           const slides: SlideData[] = [];
-
+          console.log(currentWeather);
           let infos: string[] = [];
-          if (showName.value.value) {
-            infos.push(post.name);
-          }
-          if (showTagline.value.value) {
-            infos.push(post.tagline);
-          }
+
+          infos.push(currentWeather.main.temp);
+
           if (infos.length > 0) {
             slides.push(SlideMaker.text({ text: infos.join(" - ") }));
           }
@@ -152,16 +114,14 @@ export default class ProductHuntApp implements App {
             slides: [
               ...slides,
               SlideMaker.keyValue({
-                key: "Rank",
-                value: this.getNumberWithChange(currentRank, lastRank),
+                key: "Temp",
+                value: currentWeather.main.temp,
               }),
-              SlideMaker.keyValue({
-                key: "Votes",
-                value: `💙 ${this.getNumberWithChange(currentVotes, lastVotes)}`,
+              SlideMaker.text({
+                text: `Feels like: ${currentWeather.main.feels_like}`,
               }),
-              SlideMaker.keyValue({
-                key: "Comms",
-                value: `💬 ${this.getNumberWithChange(currentComments, lastComments)}`,
+              SlideMaker.text({
+                text: `Weather: ${currentWeather.weather[0].description}`,
               }),
             ],
           };
@@ -170,67 +130,21 @@ export default class ProductHuntApp implements App {
     };
   }
 
-  async getPostRank(
-    slug: string,
+  async getWeather(
+    city: string,
     apiToken: string
-  ): Promise<{ post: any; rank: number }> {
-    const postRes = await fetch("https://api.producthunt.com/v2/api/graphql", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiToken}`,
-      },
-      body: JSON.stringify({
-        query: `{
-          post(slug:"${slug}") {
-            votesCount,
-            name,
-            featuredAt,
-            commentsCount,
-            tagline,
-          }
-        }`,
-      }),
-      cache: "no-store",
-    });
+  ): Promise<{ weather: any }> {
+    const weatherRes = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiToken}&units=metric`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    const post = await postRes.json();
-
-    const date = post.data.post.featuredAt.split("T")[0];
-
-    const postsRes = await fetch("https://api.producthunt.com/v2/api/graphql", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiToken}`,
-      },
-      body: JSON.stringify({
-        query: `{
-          posts(featured:true, postedAfter:"${date}T00:00:00Z", postedBefore:"${date}T23:59:59Z") {
-            nodes {
-              slug
-            }
-          }
-        }`,
-      }),
-    });
-    const posts = await postsRes.json();
-    const ranks = posts.data.posts.nodes.map(
-      (node: { slug: string }) => node.slug
-    ) as string[];
-    const rank = ranks.indexOf(slug) + 1;
-
-    return { post: post.data.post, rank };
-  }
-
-  getNumberWithChange(current: number, last: number): string {
-    let change = "";
-    if (last < current) {
-      change = "🔼";
-    } else if (last > current) {
-      change = "🔽";
-    }
-
-    return `${change}${current}`;
+    const fullWeather = await weatherRes.json();
+    return fullWeather;
   }
 }
