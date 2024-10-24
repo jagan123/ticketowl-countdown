@@ -55,40 +55,28 @@ export default class WeatherApp implements App {
           }
 
           let weather: any = null;
-          let lastWeather;
-          let cachedWeather;
-
-
-          let updatedAt;
+          let updatedAt: number = 0;
 
           const cached = await store.read(CACHE_KEY);
 
           if (cached) {
             const cachedJson = JSON.parse(cached);
-            lastWeather = cachedJson.lastWeather;
-            cachedWeather = cachedJson.weather;
-            updatedAt = cachedJson.updatedAt;
             if (
-              cachedJson.city === city.value.value &&
-              new Date(cachedJson.updatedAt) >
-                new Date(
-                  Date.now() - Number(cacheDuration?.value.value ?? 0) * 1000
-                )
+              cachedJson.weather.city === city.value.value &&
+              Date.now() - cachedJson.weather.updatedAt < Number(cacheDuration.value.value) * 1000
             ) {
               weather = cachedJson.weather;
+              updatedAt = cachedJson.updatedAt;
             }
           }
 
           if (!weather) {
-            const res = await this.getWeather(
+            weather = await this.getWeather(
               city.value.value.toString(),
               apiToken.value.value.toString()
             );
-            weather = res;
             updatedAt = Date.now();
           }
-
-          const currentWeather = weather;
 
           await store.write(
             CACHE_KEY,
@@ -96,32 +84,21 @@ export default class WeatherApp implements App {
               city: city.value.value.toString(),
               updatedAt,
               weather,
-              lastWeather: cachedWeather !== currentWeather ? cachedWeather : lastWeather,
             })
           );
 
-          const slides: SlideData[] = [];
-          console.log(currentWeather);
-          let infos: string[] = [];
-
-          infos.push(currentWeather.main.temp);
-
-          if (infos.length > 0) {
-            slides.push(SlideMaker.text({ text: infos.join(" - ") }));
-          }
-
           return {
             slides: [
-              ...slides,
               SlideMaker.keyValue({
                 key: "Temp",
-                value: currentWeather.main.temp,
+                value: weather.main.temp + "'C",
+              }),
+              SlideMaker.keyValue({
+                key: "Feels like",
+                value: weather.main.feels_like + "'C",
               }),
               SlideMaker.text({
-                text: `Feels like: ${currentWeather.main.feels_like}`,
-              }),
-              SlideMaker.text({
-                text: `Weather: ${currentWeather.weather[0].description}`,
+                text: `Weather: ${weather.weather[0].description}`,
               }),
             ],
           };
