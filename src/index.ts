@@ -1,6 +1,56 @@
-import { App, AppInfo, AppSlide, SlideData, SlideMaker } from "tickerowl-app-base";
+import {
+  App,
+  AppInfo,
+  AppSlide,
+  SlideMaker,
+  getCached,
+} from "tickerowl-app-base";
 
-const CACHE_KEY = "cache";
+type Weather = {
+  coord: {
+    lon: number;
+    lat: number;
+  };
+  weather: [
+    {
+      id: number;
+      main: string;
+      description: string;
+      icon: string;
+    }
+  ];
+  base: string;
+  main: {
+    temp: number;
+    feels_like: number;
+    temp_min: number;
+    temp_max: number;
+    pressure: number;
+    humidity: number;
+    sea_level: number;
+    grnd_level: number;
+  };
+  visibility: number;
+  wind: {
+    speed: number;
+    deg: number;
+  };
+  clouds: {
+    all: number;
+  };
+  dt: number;
+  sys: {
+    type: number;
+    id: number;
+    country: string;
+    sunrise: number;
+    sunset: number;
+  };
+  timezone: number;
+  id: number;
+  name: string;
+  cod: number;
+};
 
 export default class WeatherApp implements App {
   getInfo(): AppInfo {
@@ -54,74 +104,33 @@ export default class WeatherApp implements App {
             };
           }
 
-          let weather: any = null;
-          let lastWeather;
-          let cachedWeather;
-
-
-          let updatedAt;
-
-          const cached = await store.read(CACHE_KEY);
-
-          if (cached) {
-            const cachedJson = JSON.parse(cached);
-            lastWeather = cachedJson.lastWeather;
-            cachedWeather = cachedJson.weather;
-            updatedAt = cachedJson.updatedAt;
-            if (
-              cachedJson.city === city.value.value &&
-              new Date(cachedJson.updatedAt) >
-                new Date(
-                  Date.now() - Number(cacheDuration?.value.value ?? 0) * 1000
-                )
-            ) {
-              weather = cachedJson.weather;
-            }
-          }
-
-          if (!weather) {
-            const res = await this.getWeather(
-              city.value.value.toString(),
-              apiToken.value.value.toString()
-            );
-            weather = res;
-            updatedAt = Date.now();
-          }
-
-          const currentWeather = weather;
-
-          await store.write(
-            CACHE_KEY,
-            JSON.stringify({
-              city: city.value.value.toString(),
-              updatedAt,
-              weather,
-              lastWeather: cachedWeather !== currentWeather ? cachedWeather : lastWeather,
-            })
-          );
-
-          const slides: SlideData[] = [];
-          console.log(currentWeather);
-          let infos: string[] = [];
-
-          infos.push(currentWeather.main.temp);
-
-          if (infos.length > 0) {
-            slides.push(SlideMaker.text({ text: infos.join(" - ") }));
-          }
+          const weather = await getCached({
+            store,
+            key: "weather",
+            asJson: true,
+            duration: cacheDuration.value.value
+              ? Number(cacheDuration.value.value)
+              : undefined,
+            fetch: async () => {
+              return await this.getWeather(
+                city.value.value!.toString(),
+                apiToken.value.value!.toString()
+              );
+            },
+          });
 
           return {
             slides: [
-              ...slides,
               SlideMaker.keyValue({
                 key: "Temp",
-                value: currentWeather.main.temp,
+                value: weather.main.temp + "'C",
+              }),
+              SlideMaker.keyValue({
+                key: "Feels like",
+                value: weather.main.feels_like + "'C",
               }),
               SlideMaker.text({
-                text: `Feels like: ${currentWeather.main.feels_like}`,
-              }),
-              SlideMaker.text({
-                text: `Weather: ${currentWeather.weather[0].description}`,
+                text: `Weather: ${weather.weather[0].description}`,
               }),
             ],
           };
@@ -130,10 +139,7 @@ export default class WeatherApp implements App {
     };
   }
 
-  async getWeather(
-    city: string,
-    apiToken: string
-  ): Promise<{ weather: any }> {
+  async getWeather(city: string, apiToken: string): Promise<Weather> {
     const weatherRes = await fetch(
       `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiToken}&units=metric`,
       {
@@ -144,7 +150,6 @@ export default class WeatherApp implements App {
       }
     );
 
-    const fullWeather = await weatherRes.json();
-    return fullWeather;
+    return await weatherRes.json();
   }
 }
