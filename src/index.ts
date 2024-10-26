@@ -56,8 +56,8 @@ export default class CurrencyApp implements App {
           return {
             slides: [   
               SlideMaker.keyValue({ 
-                key: "USD to INR",
-                value: (currency.usd.inr.toFixed(2)).toString() + " ₹",
+                key: "1 USD",
+                value: " Rs " + (currency.usd.inr.toFixed(2)).toString(),
               }),
             ],
           };
