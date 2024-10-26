@@ -6,58 +6,18 @@ import {
   getCached,
 } from "tickerowl-app-base";
 
-type Weather = {
-  coord: {
-    lon: number;
-    lat: number;
+type Currency = {
+  usd: {
+    inr: number;
   };
-  weather: [
-    {
-      id: number;
-      main: string;
-      description: string;
-      icon: string;
-    }
-  ];
-  base: string;
-  main: {
-    temp: number;
-    feels_like: number;
-    temp_min: number;
-    temp_max: number;
-    pressure: number;
-    humidity: number;
-    sea_level: number;
-    grnd_level: number;
-  };
-  visibility: number;
-  wind: {
-    speed: number;
-    deg: number;
-  };
-  clouds: {
-    all: number;
-  };
-  dt: number;
-  sys: {
-    type: number;
-    id: number;
-    country: string;
-    sunrise: number;
-    sunset: number;
-  };
-  timezone: number;
-  id: number;
-  name: string;
-  cod: number;
 };
 
-export default class WeatherApp implements App {
+export default class CurrencyApp implements App {
   getInfo(): AppInfo {
     return {
-      id: "weather",
-      name: "City Weather",
-      description: "Show your city's weather",
+      id: "usdinr",
+      name: "USD to INR",
+      description: "Show the current US Dollar to INR exchange rate. No API key needed",
       version: 1,
       author: "Jagan Ganti",
       authorXUrl: "https://twitter.com/@jagan123",
@@ -67,22 +27,10 @@ export default class WeatherApp implements App {
 
   getSlides(): Record<string, AppSlide> {
     return {
-      "weather-stats": {
-        title: "City Weather",
-        description: "Shows your city's weather",
-        inputs: {
-          "api-token": {
-            type: "text",
-            label: "API Token",
-            required: true,
-            placeholder: "Enter your OpenWeatherMap API token",
-          },
-          city: {
-            type: "text",
-            label: "City",
-            required: true,
-            placeholder: "Enter the city",
-          },
+      "usdinr-stats": {
+        title: "US Dollar to INR",
+        description: "Shows the current US Dollar to INR exchange rate",
+        inputs: { 
           cacheDuration: {
             type: "select",
             label: "Cache Duration",
@@ -94,39 +42,22 @@ export default class WeatherApp implements App {
           },
         },
         getData: async ({ inputs, store }) => {
-          const apiToken = inputs["api-token"];
-          const city = inputs["city"];
           const cacheDuration = inputs["cacheDuration"];
-
-          if (!apiToken.value.value || !city.value.value) {
-            return {
-              slides: [],
-            };
-          }
-
-          const weather = await getCached({
+          const currency = await getCached({
             store,
-            key: "weather",
+            key: "usdinr",
             asJson: true,
-            duration: cacheDuration.value.value
-              ? Number(cacheDuration.value.value)
-              : undefined,
+            duration: Number(cacheDuration.value.value),  
             fetch: async () => {
-              return await this.getWeather(
-                city.value.value!.toString(),
-                apiToken.value.value!.toString()
-              );
+              return await this.getCurrency();
             },
           });
 
           return {
-            slides: [
-              SlideMaker.keyValue({
-                key: "Temp",
-                value: weather.main.temp + "'C",
-              }),
-              SlideMaker.text({
-                text: `Weather: ${weather.weather[0].description}`,
+            slides: [   
+              SlideMaker.keyValue({ 
+                key: "USD to INR",
+                value: (currency.usd.inr.toFixed(2)).toString() + " ₹",
               }),
             ],
           };
@@ -135,9 +66,9 @@ export default class WeatherApp implements App {
     };
   }
 
-  async getWeather(city: string, apiToken: string): Promise<Weather> {
-    const weatherRes = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiToken}&units=metric`,
+  async getCurrency(): Promise<Currency> {
+    const currencyRes = await fetch(
+      `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json`,
       {
         method: "GET",
         headers: {
@@ -145,7 +76,6 @@ export default class WeatherApp implements App {
         },
       }
     );
-
-    return await weatherRes.json();
+    return await currencyRes.json();
   }
 }
