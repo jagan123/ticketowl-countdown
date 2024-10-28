@@ -62,7 +62,7 @@ export default class CountdownApp implements App {
             slides: [   
               SlideMaker.keyValue({ 
                 key: "To Go",
-                value: countdown.days + "d " + countdown.hours + "h ",
+                value: (countdown ? countdown.days : 0) + "d " + (countdown ? countdown.hours : 0) + "h ",
               }),
             ],
           };
