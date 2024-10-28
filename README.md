@@ -1,3 +1,3 @@
-# US Dollar to INR TickerOwl App
+# Countdown TickerOwl App
 
-This is a TickerOwl app to show the current US Dollar to INR exchange rate.
+This is a TickerOwl app to show a countdown to a specific date.
